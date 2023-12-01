@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from newman_ziff.lattice_dev import LatticeDev
+from newman_ziff.newman_ziff import LatticeDev
 
 def largest_cluster_plot(lattice_dev):
     
