@@ -1,0 +1,61 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from newman_ziff.newman_ziff import LatticeDev, lattice_development
+from scipy.stats import binom
+
+#convolve function with binomial distribution
+#input #freq_data: np.array ([a,b,c,...]) where a,b,c... are occupation number at which the spanning occur
+#       lattice size: int N total size of lattice
+def convolve_with_bino(freq_data,lattice_size): 
+    wrapping_prob = freq_data / np.sum(freq_data)
+    convoluted_wrapping_prob = np.zeros(lattice_size)
+    fraction_of_occupation = np.arange(lattice_size) / lattice_size
+    
+
+    p_list = np.concatenate((np.linspace(0.01,0.45,30),np.linspace(0.45,0.7,900),np.linspace(0.7,0.99,30)))
+    prob_list = np.zeros((len(p_list),2))
+    prob_list[:,0] = p_list
+    for j in range(len(p_list)):
+
+        pmf = binom.pmf(np.arange(lattice_size), lattice_size, p_list[j])
+        convoluted_wrapping_prob = pmf * wrapping_prob
+        prob_list[j,1] = sum(convoluted_wrapping_prob)
+
+    return prob_list
+
+def wrapping_prob(L_list,repeat_time):
+    result_to_save = []
+    for L in L_list:
+        print(L)
+        occ_data = []
+        for j in range(repeat_time):
+            lattice_dev = LatticeDev(L)
+            occupation_num = lattice_development(lattice_dev)
+            occ_data.append(occupation_num)
+        freq_data = np.zeros(lattice_dev.N)
+        for elem in occ_data:
+            freq_data[int(elem)] += 1
+        freq_data = np.array(freq_data)
+        prob_list = convolve_with_bino(freq_data,lattice_dev.N)
+        """np.savetxt(
+            "./data/convoluted_wrapping_prob_L={}.csv".format(L),
+            prob_list,
+            delimiter=",",
+        )"""
+        sorted_indices = np.argsort(prob_list[:, 0])
+        # Sort the entire array using the sorted indices
+        sorted_data = prob_list[sorted_indices]
+        result_to_save.append([L,prob_list])
+        plt.plot(sorted_data[:,0],sorted_data[:,1],linestyle="-",label = "L={}".format(L))
+    
+    #plt.xlim(0.45,0.7)
+    plt.xlabel(r"occupation probability $p$")
+    plt.ylabel(r"wrapping probability $R_L(p)$")
+    plt.legend()
+    plt.axvline(0.598)
+    plt.savefig(
+        "./data/wrapping_prob_bino.png",bbox_inches="tight"
+    )
+    plt.show()
+
+    return result_to_save
